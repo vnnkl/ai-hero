@@ -1,0 +1,59 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# API Patterns
+
+## Route Handlers
+- Place API routes in [app/api](mdc:src/app/api) directory
+- Use Next.js Route Handlers with proper HTTP methods
+- Example:
+```tsx
+export async function GET() {
+  try {
+    // Implementation
+    return Response.json({ data })
+  } catch (error) {
+    return Response.json(
+      { error: "Something went wrong" },
+      { status: 500 }
+    )
+  }
+}
+```
+
+## Error Handling
+- Always use try/catch blocks in API routes
+- Return appropriate HTTP status codes
+- Include meaningful error messages
+- Common status codes:
+  - 200: Success
+  - 400: Bad Request
+  - 401: Unauthorized
+  - 403: Forbidden
+  - 404: Not Found
+  - 500: Internal Server Error
+
+## Authentication
+- Use Next-Auth for authentication
+- Protect routes using middleware
+- Check session in API routes:
+```tsx
+import { auth } from "@/auth"
+
+export async function GET() {
+  const session = await auth()
+  if (!session) {
+    return Response.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    )
+  }
+}
+```
+
+## Rate Limiting
+- Implement rate limiting for public APIs
+- Use [Upstash](mdc:src/lib/upstash.ts) for rate limiting
+- Document rate limits in API responses

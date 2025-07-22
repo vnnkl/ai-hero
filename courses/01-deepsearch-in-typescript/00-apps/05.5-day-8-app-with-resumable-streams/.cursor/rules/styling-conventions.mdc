@@ -1,0 +1,25 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Styling Conventions
+
+## Size Classes
+Use `size-*` classes instead of individual height and width classes:
+- ✅ `size-4`
+- ❌ `h-4 w-4`
+- ✅ `size-5`
+- ❌ `h-5 w-5`
+- ✅ `size-6`
+- ❌ `h-6 w-6`
+
+## Icons
+- Use `lucide-react` for all icons in the application
+- Import icons from `lucide-react` directly:
+  - ✅ `import { Search } from "lucide-react"`
+
+## Toasts
+- Use `sonner` for all toast notifications
+- Import from `sonner`:
+  - ✅ `import { toast } from "sonner"`

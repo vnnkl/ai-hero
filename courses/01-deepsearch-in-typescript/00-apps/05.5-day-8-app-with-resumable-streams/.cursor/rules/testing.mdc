@@ -1,0 +1,64 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Testing Standards
+
+## Test File Structure
+- Place tests next to the file they test
+- Use `.test.ts` or `.test.tsx` extension
+- Example:
+  - `Button.tsx`
+  - `Button.test.tsx`
+
+## Testing Libraries
+- Use Vitest as the test runner
+- Use React Testing Library for component tests
+- Use MSW for API mocking
+- Use `@testing-library/user-event` for user interactions
+
+## Component Tests
+- Test user interactions and rendering
+- Focus on user-facing behavior
+- Example:
+```tsx
+import { render, screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
+
+test("button shows loading state when clicked", async () => {
+  render(<Button>Click me</Button>)
+  
+  await userEvent.click(screen.getByRole("button"))
+  
+  expect(screen.getByText("Loading...")).toBeInTheDocument()
+})
+```
+
+## API Tests
+- Mock external services
+- Test error cases
+- Example:
+```tsx
+import { http, HttpResponse } from "msw"
+
+test("handles API error", async () => {
+  server.use(
+    http.get("/api/data", () => {
+      return HttpResponse.json(
+        { error: "Failed" },
+        { status: 500 }
+      )
+    })
+  )
+})
+```
+
+## Coverage
+- Aim for 80% coverage on business logic
+- Run coverage reports with `pnpm test:coverage`
+- Focus on testing:
+  - User interactions
+  - Error handling
+  - Edge cases
+  - Business logic

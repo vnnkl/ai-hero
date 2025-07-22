@@ -1,0 +1,34 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Project Structure
+
+## Key Files and Directories
+
+### App Routes
+- [app/chat.tsx](mdc:src/app/chat.tsx) - Client-side chat implementation with `useChat`
+- [app/page.tsx](mdc:src/app/page.tsx) - Server-side main page
+- [app/api/chat/route.ts](mdc:src/app/api/chat/route.ts) - API route for chat implementation
+
+### Core Files
+- [models.ts](mdc:src/models.ts) - Model declarations
+- [serper.ts](mdc:src/serper.ts) - Serper implementation
+- [types.ts](mdc:src/types.ts) - Shared types
+- [utils.ts](mdc:src/utils.ts) - Utility functions
+
+### Database
+- [server/db/schema.ts](mdc:src/server/db/schema.ts) - Drizzle schema definitions
+- [server/db/queries.ts](mdc:src/server/db/queries.ts) - Database helper functions
+
+### Authentication
+- [server/auth/index.ts](mdc:src/server/auth/index.ts) - Next-auth powered authentication
+
+### Configuration
+- [.env](mdc:.env) - Environment variables
+- [env.js](mdc:src/env.js) - Type-safe environment variable validation
+
+## Package Management
+- Use `pnpm` as the package manager
+- Run `pnpm run db:push` after making changes to the database schema

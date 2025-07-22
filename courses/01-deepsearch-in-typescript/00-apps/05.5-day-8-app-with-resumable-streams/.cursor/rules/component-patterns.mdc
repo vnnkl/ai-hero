@@ -1,0 +1,46 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# React Component Patterns
+
+## Component Structure
+- Use function declarations for components, not arrow functions:
+  - ✅ `export function Button() { ... }`
+  - ❌ `export const Button = () => { ... }`
+
+## Props Pattern
+- Always define prop types using interfaces:
+```tsx
+interface ButtonProps {
+  variant: "primary" | "secondary";
+  children: React.ReactNode;
+}
+
+export function Button({ variant, children }: ButtonProps) {
+  // ...
+}
+```
+
+## Server vs Client Components
+- Default to Server Components
+- Add `"use client"` directive only when needed for:
+  - Event handlers
+  - useState/useEffect
+  - Browser APIs
+  - Client-side routing
+
+## Error Boundaries
+- Wrap dynamic content with error boundaries
+- Place error boundaries in [components/error-boundary.tsx](mdc:src/components/error-boundary.tsx)
+
+## Loading States
+- Use React Suspense for loading states
+- Place loading UI in separate components
+- Example:
+```tsx
+<Suspense fallback={<LoadingSpinner />}>
+  <DynamicContent />
+</Suspense>
+```

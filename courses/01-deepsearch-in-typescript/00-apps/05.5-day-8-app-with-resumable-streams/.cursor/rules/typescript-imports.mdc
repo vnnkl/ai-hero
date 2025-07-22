@@ -1,0 +1,16 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# TypeScript Import Conventions
+
+- Use the `type` modifier on the entire import statement for type imports:
+  - ✅ `import type { Message } from "ai";`
+  - ❌ `import { type Message } from "ai";`
+
+- Prefer non-optional properties where possible:
+  - ✅ `interface User { name: string; }`
+  - ❌ `interface User { name?: string; }`
+
+Only use optional properties when the value can genuinely be undefined in the business logic.

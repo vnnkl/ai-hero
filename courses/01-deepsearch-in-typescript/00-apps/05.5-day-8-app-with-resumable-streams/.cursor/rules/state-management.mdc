@@ -1,0 +1,47 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# State Management
+
+## Server State
+- Use React Query for server state management
+- Define queries in [hooks/queries](mdc:src/hooks/queries) directory
+- Example:
+```tsx
+export function useUsers() {
+  return useQuery({
+    queryKey: ['users'],
+    queryFn: fetchUsers
+  });
+}
+```
+
+## Form State
+- Use `react-hook-form` for form management
+- Define form schemas using `zod`
+- Example:
+```tsx
+const schema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8)
+});
+
+export function LoginForm() {
+  const form = useForm({
+    resolver: zodResolver(schema)
+  });
+}
+```
+
+## Local State
+- Keep state as close to where it's used as possible
+- Use `useState` for simple state
+- Use `useReducer` for complex state
+- Extract reusable state logic into custom hooks
+
+## Global State
+- Avoid global state when possible
+- If needed, use React Context
+- Place context providers in [contexts](mdc:src/contexts) directory

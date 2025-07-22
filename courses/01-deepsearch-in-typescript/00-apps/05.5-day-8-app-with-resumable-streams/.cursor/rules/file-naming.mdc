@@ -1,0 +1,20 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# File Naming Conventions
+
+- All component files should use dash-case naming convention
+  - ✅ `auth-button.tsx`
+  - ❌ `AuthButton.tsx`
+  - ✅ `delete-chat-button.tsx`
+  - ❌ `DeleteChatButton.tsx`
+
+- All files should use TypeScript (.ts/.tsx) instead of JavaScript (.js/.jsx)
+  - ✅ `component.tsx`
+  - ❌ `component.jsx`
+  - ✅ `utils.ts`
+  - ❌ `utils.js`
+
+Components should be placed in the [components](mdc:src/components) directory.
