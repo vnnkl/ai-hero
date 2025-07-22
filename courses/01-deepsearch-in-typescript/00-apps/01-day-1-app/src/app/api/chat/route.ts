@@ -7,6 +7,7 @@ import { auth } from "~/server/auth";
 import { model } from "~/models";
 import { z } from "zod";
 import { searchSerper } from "~/serper";
+import { canUserMakeRequest, addUserRequest } from "~/server/db/queries";
 
 export const maxDuration = 60;
 
@@ -16,6 +17,32 @@ export async function POST(request: Request) {
   if (!session?.user) {
     return new Response("Unauthorized", { status: 401 });
   }
+
+  // Rate limiting check
+  const rateLimitCheck = await canUserMakeRequest(session.user.id);
+  
+  if (!rateLimitCheck.allowed) {
+    return new Response(
+      JSON.stringify({
+        error: "Rate limit exceeded",
+        message: rateLimitCheck.reason,
+        requestsToday: rateLimitCheck.requestsToday,
+        limit: rateLimitCheck.limit,
+      }),
+      { 
+        status: 429,
+        headers: {
+          "Content-Type": "application/json",
+          "X-RateLimit-Limit": rateLimitCheck.limit.toString(),
+          "X-RateLimit-Remaining": Math.max(0, rateLimitCheck.limit - rateLimitCheck.requestsToday).toString(),
+          "X-RateLimit-Reset": new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Reset at midnight
+        }
+      }
+    );
+  }
+
+  // Record the request
+  await addUserRequest(session.user.id, "/api/chat");
 
   const body = (await request.json()) as {
     messages: Array<Message>;
