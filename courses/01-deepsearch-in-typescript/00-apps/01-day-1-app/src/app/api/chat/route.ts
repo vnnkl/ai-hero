@@ -47,15 +47,13 @@ export async function POST(request: Request) {
 
   const body = (await request.json()) as {
     messages: Array<Message>;
-    chatId?: string;
+    chatId: string;
+    isNewChat: boolean;
   };
 
   return createDataStreamResponse({
     execute: async (dataStream) => {
-      const { messages, chatId: providedChatId } = body;
-
-      // Generate a new chatId if not provided
-      const chatId = providedChatId ?? crypto.randomUUID();
+      const { messages, chatId, isNewChat } = body;
 
       // Generate a chat title from the first user message
       const firstUserMessage = messages.find(msg => msg.role === 'user');
@@ -74,8 +72,8 @@ export async function POST(request: Request) {
         messages,
       });
 
-      // If this is a new chat (no chatId was provided), send the new chat ID to the frontend
-      if (!providedChatId) {
+      // If this is a new chat, send the new chat ID to the frontend
+      if (isNewChat) {
         dataStream.writeData({
           type: "NEW_CHAT_CREATED",
           chatId,

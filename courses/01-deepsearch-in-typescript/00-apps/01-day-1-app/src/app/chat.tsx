@@ -12,11 +12,12 @@ import type { Message } from "ai";
 interface ChatProps {
   userName: string;
   isAuthenticated: boolean;
-  chatId: string | undefined;
+  chatId: string;
+  isNewChat: boolean;
   initialMessages?: Message[];
 }
 
-export const ChatPage = ({ userName, isAuthenticated, chatId, initialMessages }: ChatProps) => {
+export const ChatPage = ({ userName, isAuthenticated, chatId, isNewChat, initialMessages }: ChatProps) => {
   const [showSignInModal, setShowSignInModal] = useState(false);
   const router = useRouter();
   const { messages, input, handleInputChange, handleSubmit, isLoading, data } =
@@ -24,6 +25,7 @@ export const ChatPage = ({ userName, isAuthenticated, chatId, initialMessages }:
       initialMessages,
       body: {
         chatId,
+        isNewChat,
       },
     });
 
