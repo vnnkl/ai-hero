@@ -13,8 +13,8 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${GeistSans.variable}`}>
-      <body suppressHydrationWarning={true}>
+    <html lang="en" className={`${GeistSans.variable} bg-gray-950`}>
+      <body className="bg-gray-950 text-gray-100" suppressHydrationWarning={true}>
         <SessionProvider>{children}</SessionProvider>
       </body>
     </html>

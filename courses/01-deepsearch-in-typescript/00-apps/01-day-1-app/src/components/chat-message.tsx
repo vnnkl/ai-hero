@@ -114,15 +114,16 @@ export const ChatMessage = ({ message, userName }: ChatMessageProps) => {
   return (
     <div className="mb-6">
       <div
-        className={`rounded-lg p-4 ${
+        className={`rounded-lg p-4 min-h-0 ${
           isAI ? "bg-gray-800 text-gray-300" : "bg-gray-900 text-gray-300"
         }`}
+        style={{ backgroundColor: isAI ? 'rgb(31 41 55)' : 'rgb(17 24 39)' }}
       >
         <p className="mb-2 text-sm font-semibold text-gray-400">
           {isAI ? "AI" : userName}
         </p>
 
-        <div className="prose prose-invert max-w-none">
+        <div className="prose prose-invert max-w-none prose-pre:bg-gray-700 prose-code:bg-gray-700 prose-code:text-gray-300 prose-p:text-gray-300 prose-li:text-gray-300 prose-ul:text-gray-300 prose-ol:text-gray-300">
           {/* Handle parts array if it exists, otherwise fall back to content */}
           {message.parts ? (
             message.parts.map((part, index) => {
