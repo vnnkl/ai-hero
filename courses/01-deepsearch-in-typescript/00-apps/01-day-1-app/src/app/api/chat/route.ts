@@ -2,12 +2,13 @@ import type { Message } from "ai";
 import {
   streamText,
   createDataStreamResponse,
+  appendResponseMessages,
 } from "ai";
 import { auth } from "~/server/auth";
 import { model } from "~/models";
 import { z } from "zod";
 import { searchSerper } from "~/serper";
-import { canUserMakeRequest, addUserRequest } from "~/server/db/queries";
+import { canUserMakeRequest, addUserRequest, upsertChat } from "~/server/db/queries";
 
 export const maxDuration = 60;
 
@@ -46,11 +47,40 @@ export async function POST(request: Request) {
 
   const body = (await request.json()) as {
     messages: Array<Message>;
+    chatId?: string;
   };
 
   return createDataStreamResponse({
     execute: async (dataStream) => {
-      const { messages } = body;
+      const { messages, chatId: providedChatId } = body;
+
+      // Generate a new chatId if not provided
+      const chatId = providedChatId ?? crypto.randomUUID();
+
+      // Generate a chat title from the first user message
+      const firstUserMessage = messages.find(msg => msg.role === 'user');
+      const chatTitle = firstUserMessage?.content 
+        ? (typeof firstUserMessage.content === 'string' 
+            ? firstUserMessage.content.slice(0, 50).trim() + (firstUserMessage.content.length > 50 ? '...' : '')
+            : 'New Chat')
+        : 'New Chat';
+
+      // Create the chat in the database before starting the stream
+      // This protects against broken streams, timeouts, or cancellations
+      await upsertChat({
+        userId: session.user.id,
+        chatId,
+        title: chatTitle,
+        messages,
+      });
+
+      // If this is a new chat (no chatId was provided), send the new chat ID to the frontend
+      if (!providedChatId) {
+        dataStream.writeData({
+          type: "NEW_CHAT_CREATED",
+          chatId,
+        });
+      }
 
       const result = streamText({
         model,
@@ -95,6 +125,29 @@ SEARCH STRATEGY:
 Remember: Incomplete answers without proper citations are unacceptable. Always search and always cite.`,
         messages,
         maxSteps: 10,
+        onFinish: async ({ text, finishReason, usage, response }) => {
+          try {
+            const responseMessages = response.messages;
+
+            // Merge the original messages with the new response messages
+            const updatedMessages = appendResponseMessages({
+              messages,
+              responseMessages,
+            });
+
+            // Save the updated messages to the database
+            // This replaces all existing messages in the chat
+            await upsertChat({
+              userId: session.user.id,
+              chatId,
+              title: chatTitle,
+              messages: updatedMessages,
+            });
+          } catch (error) {
+            console.error('Error saving chat to database:', error);
+            // Continue execution even if saving fails - don't break the stream
+          }
+        },
       });
 
       console.log(JSON.stringify(result, null, 2));
