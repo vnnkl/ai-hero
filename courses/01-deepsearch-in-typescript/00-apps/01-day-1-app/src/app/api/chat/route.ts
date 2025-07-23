@@ -57,11 +57,21 @@ export async function POST(request: Request) {
 
       // Generate a chat title from the first user message
       const firstUserMessage = messages.find(msg => msg.role === 'user');
-      const chatTitle = firstUserMessage?.content 
-        ? (typeof firstUserMessage.content === 'string' 
-            ? firstUserMessage.content.slice(0, 50).trim() + (firstUserMessage.content.length > 50 ? '...' : '')
-            : 'New Chat')
-        : 'New Chat';
+      let chatTitle = 'New Chat';
+      
+      if (firstUserMessage) {
+        // Try to get text from parts array first (new format)
+        if (firstUserMessage.parts && firstUserMessage.parts.length > 0) {
+          const textPart = firstUserMessage.parts.find(part => part.type === 'text');
+          if (textPart && textPart.text) {
+            chatTitle = textPart.text.slice(0, 50).trim() + (textPart.text.length > 50 ? '...' : '');
+          }
+        }
+        // Fallback to content field (legacy format)
+        else if (firstUserMessage.content && typeof firstUserMessage.content === 'string') {
+          chatTitle = firstUserMessage.content.slice(0, 50).trim() + (firstUserMessage.content.length > 50 ? '...' : '');
+        }
+      }
 
       // Create the chat in the database before starting the stream
       // This protects against broken streams, timeouts, or cancellations
