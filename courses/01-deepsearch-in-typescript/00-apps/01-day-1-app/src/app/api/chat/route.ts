@@ -133,6 +133,7 @@ SEARCH STRATEGY:
 Remember: Incomplete answers without proper citations are unacceptable. Always search and always cite.`,
         messages,
         maxSteps: 10,
+        experimental_telemetry: {isEnabled: true},
         onFinish: async ({ text, finishReason, usage, response }) => {
           try {
             const responseMessages = response.messages;
