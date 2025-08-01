@@ -9,6 +9,22 @@ import { model } from "~/models";
 import { z } from "zod";
 import { searchSerper } from "~/serper";
 import { canUserMakeRequest, addUserRequest, upsertChat } from "~/server/db/queries";
+import { Langfuse } from "langfuse";
+import { env } from "~/env";
+import { bulkCrawlWebsites } from "~/scraper";
+import { cacheWithRedis } from "~/server/redis/redis";
+
+const langfuse = new Langfuse({
+  environment: env.NODE_ENV,
+});
+
+// Create cached version of scrapePages tool
+const scrapePages = cacheWithRedis(
+  "scrapePages",
+  async (urls: string[]) => {
+    return await bulkCrawlWebsites({ urls });
+  },
+);
 
 export const maxDuration = 60;
 
@@ -90,6 +106,13 @@ export async function POST(request: Request) {
         });
       }
 
+      // Create Langfuse trace for this chat session
+      const trace = langfuse.trace({
+        sessionId: chatId,
+        name: "chat",
+        userId: session.user.id,
+      });
+
       const result = streamText({
         model,
         tools: {
@@ -107,17 +130,63 @@ export async function POST(request: Request) {
                     title: result.title,
                     link: result.link,
                     snippet: result.snippet,
+                    date: result.date || null,
                   }));
                 },
               },
+              scrapePages: {
+                parameters: z.object({
+                  urls: z.array(z.string()).describe("Array of URLs to scrape for full content"),
+                }),
+                execute: async ({ urls }) => {
+                  const result = await scrapePages(urls);
+                  
+                  const mappedResults = result.results.map(({ url, result: crawlResult }) => ({
+                    url,
+                    content: crawlResult.success ? crawlResult.data : `Error: ${crawlResult.error}`,
+                    success: crawlResult.success,
+                  }));
+                  
+                  if (result.success) {
+                    return {
+                      success: true,
+                      data: mappedResults,
+                    };
+                  } else {
+                    return {
+                      success: false,
+                      error: result.error,
+                      data: mappedResults,
+                    };
+                  }
+                },
+              },
           },
-        system: `You are a helpful research assistant with access to real-time web search capabilities. 
+        system: `You are a helpful research assistant with access to real-time web search and web scraping capabilities. 
+
+CURRENT DATE AND TIME: ${new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' })} ${new Date().toLocaleTimeString('en-US', { timeZone: 'Europe/Paris', hour12: false })} CET
 
 MANDATORY BEHAVIOR:
 1. You MUST use the searchWeb tool for ANY question that could benefit from current information, facts, or data
 2. You MUST provide complete, comprehensive answers - never give partial responses
 3. You MUST include inline citations with clickable links for ALL factual claims
 4. You MUST search multiple times if needed to gather sufficient information
+
+AVAILABLE TOOLS:
+1. searchWeb - Search the web for recent information and get snippets
+2. scrapePages - Get the full content of specific web pages in markdown format
+
+WHEN TO USE scrapePages:
+- When search snippets don't provide enough detail for a comprehensive answer
+- When you need to read the full content of articles, documentation, or papers
+- When search results reference specific pages that need detailed examination
+- When dealing with complex topics that require in-depth analysis of source material
+
+HOW TO USE scrapePages:
+- After getting search results, identify the most relevant URLs
+- Use scrapePages with an array of URLs to get full content
+- Always respect robots.txt - the tool will automatically check and skip disallowed pages
+- Handle both successful scrapes and errors gracefully in your response
 
 CITATION FORMAT:
 - Use markdown links: [descriptive text](URL) 
@@ -126,14 +195,28 @@ CITATION FORMAT:
 - Example: "According to recent studies [OpenAI's latest research](https://example.com), AI models are improving rapidly."
 
 SEARCH STRATEGY:
-- Search first, then provide your complete answer
+- Search first to identify relevant sources
+- For time-sensitive information (news, weather, sports, stock prices, etc.), include date-specific terms in your queries
+- Use the publication dates from search results to prioritize the most recent information
+- Use scrapePages to get full content when needed for detailed analysis
 - If the initial search doesn't provide enough detail, search again with different terms
 - Always aim to provide thorough, well-researched responses
 
-Remember: Incomplete answers without proper citations are unacceptable. Always search and always cite.`,
+DATE-AWARE SEARCHING:
+- When users ask for "recent", "latest", "current", or "up-to-date" information, include the current year/month in your search queries
+- Always check the publication dates in search results and prioritize newer sources
+- Mention the freshness of information in your responses (e.g., "According to a recent article from [date]...")
+
+Remember: Incomplete answers without proper citations are unacceptable. Always search and always cite. Use scrapePages when you need more detail than search snippets provide.`,
         messages,
         maxSteps: 10,
-        experimental_telemetry: {isEnabled: true},
+        experimental_telemetry: {
+          isEnabled: true,
+          functionId: `agent`,
+          metadata: {
+            langfuseTraceId: trace.id,
+          },
+        },
         onFinish: async ({ text, finishReason, usage, response }) => {
           try {
             const responseMessages = response.messages;
@@ -152,6 +235,9 @@ Remember: Incomplete answers without proper citations are unacceptable. Always s
               title: chatTitle,
               messages: updatedMessages,
             });
+
+            // Flush the trace to Langfuse
+            await langfuse.flushAsync();
           } catch (error) {
             console.error('Error saving chat to database:', error);
             // Continue execution even if saving fails - don't break the stream
